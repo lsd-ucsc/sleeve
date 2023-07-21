@@ -1,5 +1,5 @@
 {
-    "container_registry": "ghcr.io/sieve-project/action",
+    "container_registry": "docker.io/tlg2132",
     "namespace": "default",
     "leading_api": "kind-control-plane",
     "following_api": "kind-control-plane3",
