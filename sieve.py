@@ -137,6 +137,29 @@ def create_kind_config(num_apiservers, num_workers):
         )
         for i in range(num_apiservers):
             kind_config_file.write("- role: control-plane\n")
+            kind_config_file.write("  extraMounts:\n") # Mount to Control Plane Kind Node
+            kind_config_file.write("  - hostPath: /etc/kubernetes/sieve-audit-policy.yaml\n")
+            kind_config_file.write("    containerPath: /etc/kubernetes/audit-policy.yaml\n")
+            kind_config_file.write("  - hostPath: /var/log/apiserver\n")
+            kind_config_file.write("    containerPath: /var/log/apiserver\n")
+            kind_config_file.write("  kubeadmConfigPatches:\n")
+            kind_config_file.write("  - |\n")
+            kind_config_file.write("    kind: ClusterConfiguration\n")
+            kind_config_file.write("    apiServer:\n")
+            kind_config_file.write("        extraArgs:\n")
+            kind_config_file.write("          audit-policy-file: /etc/kubernetes/audit-policy.yaml\n")
+            kind_config_file.write("          audit-log-path: /var/log/apiserver/audit.log\n")
+            kind_config_file.write("        extraVolumes:\n") # Mount to API Server pods
+            kind_config_file.write("        - name: audit-policy\n")
+            kind_config_file.write("          hostPath: /etc/kubernetes/audit-policy.yaml\n")
+            kind_config_file.write("          mountPath: /etc/kubernetes/audit-policy.yaml\n")
+            kind_config_file.write("          readOnly: true\n")
+            kind_config_file.write("        - name: audit-log\n")
+            kind_config_file.write("          hostPath: /var/log/apiserver\n")
+            kind_config_file.write("          mountPath: /var/log/apiserver\n")
+            kind_config_file.write("          readOnly: false\n")
+
+
         for i in range(num_workers):
             kind_config_file.write("- role: worker\n")
     return kind_config_filename
@@ -240,16 +263,21 @@ def stop_sieve_server():
     os_system("docker exec kind-control-plane bash -c 'pkill sieve-server'")
 
 
+def get_kind_image():
+    return "kindest/node:v1.19.16"
+
+
 def setup_kind_cluster(test_context: TestContext):
     kind_config = create_kind_config(
         test_context.num_apiservers, test_context.num_workers
     )
     platform = ""
     if sys.platform == "darwin":
-        platform = "macos-"
+        platform = "-macos"
     k8s_container_registry = test_context.container_registry
     k8s_image_tag = (
-        test_context.controller_config.kubernetes_version + "-" + platform + test_context.image_tag
+        test_context.controller_config.kubernetes_version
+        + platform
     )
     retry_cnt = 0
     # Retry cluster creation for 5 times.
@@ -265,11 +293,12 @@ def setup_kind_cluster(test_context: TestContext):
                     "Retrying to create kind cluster; retry count {}".format(retry_cnt)
                 )
             retry_cnt += 1
-            os_system(
-                "kind create cluster --image {}/node:{} --config {}".format(
-                    k8s_container_registry, k8s_image_tag, kind_config
-                )
+            create_cmd = "kind create cluster --image {} --config {}".format(
+                get_kind_image(), kind_config
             )
+            print(create_cmd)
+
+            os_system(create_cmd)
             os_system(
                 "docker exec kind-control-plane bash -c 'mkdir -p /root/.kube/ && cp /etc/kubernetes/admin.conf /root/.kube/config'"
             )
@@ -692,7 +721,9 @@ def run_test(test_context: TestContext) -> TestResult:
 
 
 def create_plan_for_test_mode(test_context: TestContext):
-    test_plan_content = yaml.load(open(test_context.original_test_plan))
+    test_plan_content = yaml.load(
+        open(test_context.original_test_plan), Loader=yaml.Loader
+    )
     # TODO: we should probably just add the annotatedReconcileStackFrame when generating the test plan.
     test_plan_content["annotatedReconcileStackFrame"] = [
         i for i in test_context.controller_config.annotated_reconcile_functions.values()
