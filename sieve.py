@@ -121,7 +121,40 @@ def create_configmap(test_plan):
     return configmap_path
 
 
-def create_kind_config(num_apiservers, num_workers):
+def write_audit_config(conf_file):
+    conf_file.write("""
+  extraMounts:
+  - hostPath: /etc/kubernetes/sieve-audit-policy.yaml
+    containerPath: /etc/kubernetes/audit-policy.yaml
+  - hostPath: /etc/kubernetes/audit-webhook-config.yaml
+    containerPath: /etc/kubernetes/audit-webhook-config.yaml
+  - hostPath: /var/log/apiserver
+    containerPath: /var/log/apiserver
+  kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+        extraArgs:
+          audit-policy-file: /etc/kubernetes/audit-policy.yaml
+          audit-webhook-config-file: /etc/kubernetes/audit-webhook-config.yaml
+        extraVolumes:
+        - name: audit-policy
+          hostPath: /etc/kubernetes/audit-policy.yaml
+          mountPath: /etc/kubernetes/audit-policy.yaml
+          readOnly: true
+        - name: audit-webhook-config
+          hostPath: /etc/kubernetes/audit-webhook-config.yaml
+          mountPath: /etc/kubernetes/audit-webhook-config.yaml
+          readOnly: true
+        - name: audit-log
+          hostPath: /var/log/apiserver
+          mountPath: /var/log/apiserver
+          readOnly: false
+    """
+    )
+
+
+def create_kind_config(num_apiservers, num_workers, audit=False):
     kind_config_dir = "kind_configs"
     os.makedirs(kind_config_dir, exist_ok=True)
     kind_config_filename = os.path.join(
@@ -131,27 +164,30 @@ def create_kind_config(num_apiservers, num_workers):
             str(num_workers),
         ),
     )
+    audit_config_path = os.getcwd()
     with open(kind_config_filename, "w") as kind_config_file:
         kind_config_file.writelines(
             ["kind: Cluster\n", "apiVersion: kind.x-k8s.io/v1alpha4\n", "nodes:\n"]
         )
         for i in range(num_apiservers):
             kind_config_file.write("- role: control-plane\n")
+            # get the necessary audit yaml files from the local machine into the kind containers
             kind_config_file.write("  extraMounts:\n") # Mount to Control Plane Kind Node
-            kind_config_file.write("  - hostPath: /etc/kubernetes/sieve-audit-policy.yaml\n")
+            kind_config_file.write(f"  - hostPath: {audit_config_path}/sieve-audit-policy.yaml\n")
             kind_config_file.write("    containerPath: /etc/kubernetes/audit-policy.yaml\n")
-            kind_config_file.write("  - hostPath: /etc/kubernetes/audit-webhook-config.yaml\n")
+            kind_config_file.write(f"  - hostPath: {audit_config_path}/audit-webhook-config.yaml\n")
             kind_config_file.write("    containerPath: /etc/kubernetes/audit-webhook-config.yaml\n")
-            kind_config_file.write("  - hostPath: /var/log/apiserver\n")
-            kind_config_file.write("    containerPath: /var/log/apiserver\n")
+
+            # kind_config_file.write("  - hostPath: /var/log/apiserver\n")
+            # kind_config_file.write("    containerPath: /var/log/apiserver\n")
+            # # set up audit configuration
             kind_config_file.write("  kubeadmConfigPatches:\n")
             kind_config_file.write("  - |\n")
             kind_config_file.write("    kind: ClusterConfiguration\n")
             kind_config_file.write("    apiServer:\n")
-            kind_config_file.write("        extraArgs:\n")
-            kind_config_file.write("          audit-policy-file: /etc/kubernetes/audit-policy.yaml\n")
-            kind_config_file.write("          audit-webhook-config-file: /etc/kubernetes/audit-webhook-config.yaml\n")
             # kind_config_file.write("          audit-log-path: /var/log/apiserver/audit.log\n")
+
+            # mount volumes from the kind containers to the kubernetes pods
             kind_config_file.write("        extraVolumes:\n") # Mount to API Server pods
             kind_config_file.write("        - name: audit-policy\n")
             kind_config_file.write("          hostPath: /etc/kubernetes/audit-policy.yaml\n")
@@ -161,10 +197,15 @@ def create_kind_config(num_apiservers, num_workers):
             kind_config_file.write("          hostPath: /etc/kubernetes/audit-webhook-config.yaml\n")
             kind_config_file.write("          mountPath: /etc/kubernetes/audit-webhook-config.yaml\n")
             kind_config_file.write("          readOnly: true\n")
-            kind_config_file.write("        - name: audit-log\n")
-            kind_config_file.write("          hostPath: /var/log/apiserver\n")
-            kind_config_file.write("          mountPath: /var/log/apiserver\n")
-            kind_config_file.write("          readOnly: false\n")
+
+            # pass the mounted configs in as args to the API Server
+            kind_config_file.write("        extraArgs:\n")
+            kind_config_file.write("          audit-policy-file: /etc/kubernetes/audit-policy.yaml\n")
+            kind_config_file.write("          audit-webhook-config-file: /etc/kubernetes/audit-webhook-config.yaml\n")
+            # kind_config_file.write("        - name: audit-log\n")
+            # kind_config_file.write("          hostPath: /var/log/apiserver\n")
+            # kind_config_file.write("          mountPath: /var/log/apiserver\n")
+            # kind_config_file.write("          readOnly: false\n")
 
 
         for i in range(num_workers):
