@@ -271,6 +271,13 @@ def stop_sieve_server():
 
 
 def get_kind_image():
+    """
+    v1.19.16 corresponds to the Kubernetes version that Kind runs. We avoid
+    more recent versions because sieve was developed in ~2021 on k8s v1.18
+    or so, and there were breaking changes in v1.20 as far as CRD yaml files
+    are structured. Instead of translating all the CRDs in this repo to the
+    newer API, we'll use an older version of k8s before the breaking changes.
+    """
     return "kindest/node:v1.19.16"
 
 
@@ -286,6 +293,7 @@ def setup_kind_cluster(test_context: TestContext):
         test_context.controller_config.kubernetes_version
         + platform
     )
+    create_cmd = "kind create cluster --iamge {} --config {}".format(get_kind_image(), kind_config)
     retry_cnt = 0
     # Retry cluster creation for 5 times.
     while retry_cnt < 5:
