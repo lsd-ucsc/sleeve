@@ -178,14 +178,13 @@ def create_kind_config(num_apiservers, num_workers, audit=False):
             kind_config_file.write(f"  - hostPath: {audit_config_path}/audit-webhook-config.yaml\n")
             kind_config_file.write("    containerPath: /etc/kubernetes/audit-webhook-config.yaml\n")
 
-            # kind_config_file.write("  - hostPath: /var/log/apiserver\n")
-            # kind_config_file.write("    containerPath: /var/log/apiserver\n")
+            kind_config_file.write("  - hostPath: /Users/tgoodwin/projects/sleeve/logs/\n")
+            kind_config_file.write("    containerPath: /var/log/apiserver/\n")
             # # set up audit configuration
             kind_config_file.write("  kubeadmConfigPatches:\n")
             kind_config_file.write("  - |\n")
             kind_config_file.write("    kind: ClusterConfiguration\n")
             kind_config_file.write("    apiServer:\n")
-            # kind_config_file.write("          audit-log-path: /var/log/apiserver/audit.log\n")
 
             # mount volumes from the kind containers to the kubernetes pods
             kind_config_file.write("        extraVolumes:\n") # Mount to API Server pods
@@ -198,14 +197,16 @@ def create_kind_config(num_apiservers, num_workers, audit=False):
             kind_config_file.write("          mountPath: /etc/kubernetes/audit-webhook-config.yaml\n")
             kind_config_file.write("          readOnly: true\n")
 
-            # pass the mounted configs in as args to the API Server
+            kind_config_file.write("        - name: audit-log\n")
+            kind_config_file.write("          hostPath: /var/log/apiserver/\n")
+            kind_config_file.write("          mountPath: /var/log/apiserver/\n")
+            kind_config_file.write("          readOnly: false\n")
+
             kind_config_file.write("        extraArgs:\n")
             kind_config_file.write("          audit-policy-file: /etc/kubernetes/audit-policy.yaml\n")
             kind_config_file.write("          audit-webhook-config-file: /etc/kubernetes/audit-webhook-config.yaml\n")
-            # kind_config_file.write("        - name: audit-log\n")
-            # kind_config_file.write("          hostPath: /var/log/apiserver\n")
-            # kind_config_file.write("          mountPath: /var/log/apiserver\n")
-            # kind_config_file.write("          readOnly: false\n")
+            kind_config_file.write("          audit-log-path: /var/log/apiserver/audit.log\n")
+
 
 
         for i in range(num_workers):
