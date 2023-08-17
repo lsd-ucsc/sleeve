@@ -178,7 +178,7 @@ def create_kind_config(num_apiservers, num_workers, audit=False):
             kind_config_file.write(f"  - hostPath: {audit_config_path}/audit-webhook-config.yaml\n")
             kind_config_file.write("    containerPath: /etc/kubernetes/audit-webhook-config.yaml\n")
 
-            kind_config_file.write("  - hostPath: /Users/tgoodwin/projects/sleeve/logs/\n")
+            kind_config_file.write("  - hostPath: /Users/tgoodwin/projects/sleeve/audit_logs/\n")
             kind_config_file.write("    containerPath: /var/log/apiserver/\n")
             # # set up audit configuration
             kind_config_file.write("  kubeadmConfigPatches:\n")
