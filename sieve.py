@@ -164,7 +164,10 @@ def create_kind_config(num_apiservers, num_workers, audit=False):
             str(num_workers),
         ),
     )
+
     audit_config_path = os.getcwd()
+    log_fname = os.getenv('SLEEVE_EXPERIMENT_NAME', 'audit.log')
+
     with open(kind_config_filename, "w") as kind_config_file:
         kind_config_file.writelines(
             ["kind: Cluster\n", "apiVersion: kind.x-k8s.io/v1alpha4\n", "nodes:\n"]
@@ -205,7 +208,7 @@ def create_kind_config(num_apiservers, num_workers, audit=False):
             kind_config_file.write("        extraArgs:\n")
             kind_config_file.write("          audit-policy-file: /etc/kubernetes/audit-policy.yaml\n")
             kind_config_file.write("          audit-webhook-config-file: /etc/kubernetes/audit-webhook-config.yaml\n")
-            kind_config_file.write("          audit-log-path: /var/log/apiserver/audit.log\n")
+            kind_config_file.write(f"          audit-log-path: /var/log/apiserver/{log_fname}\n")
 
 
 
