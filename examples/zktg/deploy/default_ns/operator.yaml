@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: zookeeper-operator
+      sievetag: zookeeper-operator
+  template:
+    metadata:
+      labels:
+        name: zookeeper-operator
+        sievetag: zookeeper-operator
+    spec:
+      serviceAccountName: zookeeper-operator
+      containers:
+        - name: zookeeper-operator
+          # Replace this with the built image name
+          image: ${SIEVE-DR}/zookeeper-operator:${SIEVE-DT}
+          ports:
+          - containerPort: 60000
+            name: metrics
+          command:
+          - zookeeper-operator
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: WATCH_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: OPERATOR_NAME
+            value: "zookeeper-operator"
+          - name: KUBERNETES_SERVICE_HOST
+            value: "kind-control-plane"
+          - name: KUBERNETES_SERVICE_PORT
+            value: "6443"
+          envFrom:
+          - configMapRef:
+              name: sieve-testing-global-config
