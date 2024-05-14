@@ -1,12 +1,14 @@
 * Kartographer - Webhook HTTP Server for Kubernetes Audit Logging
 
 *** Instructions
-Configure kubernetes to use a webhook for audit logging (you probably need to configure the ip address in =../audit-webhook-config=)
-
-
-Note: Sieve is configured to use the audit webhook config located at =/etc/kubernetes/audit-webhook-config.yaml= and the audit configuration at =/etc/kubernetes/sieve-audit-policy.yaml= on your local machine.
 
 Run Docker compose to setup a mongodb server and run the webhook http server.
 #+BEGIN_SRC sh
 docker compose up -d
 #+END_SRC
+
+Configure kubernetes to use a webhook for audit logging (you probably need to configure the ip address in =../audit-webhook-config=)
+TODO: verify if this is the proper IP address to be using...
+```
+docker inspect   -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' kartographer-kartographer-1
+```

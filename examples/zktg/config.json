@@ -1,0 +1,29 @@
+{
+    "name": "zookeeper-operator",
+    "github_link": "https://github.com/pravega/zookeeper-operator.git",
+    "commit": "daac1bdeaace91e4c6e7b712afe7415b2c24df44",
+    "kubernetes_version": "v1.24.10",
+    "client_go_version": "v0.24.1",
+    "dockerfile_path": "Dockerfile",
+    "controller_image_name": "pravega/zookeeper-operator:latest",
+    "test_command": "python3 examples/zookeeper-operator/test/test.py",
+    "custom_resource_definitions": [
+        "zookeepercluster"
+    ],
+    "annotated_reconcile_functions": {
+        "controllers/zookeepercluster_controller.go": "github.com/pravega/zookeeper-operator/controllers/controller.(*ZookeeperClusterReconciler).Reconcile"
+    },
+    "controller_pod_label": "zookeeper-operator",
+    "controller_deployment_file_path": "examples/zookeeper-operator/deploy/default_ns/operator.yaml",
+    "end_state_checker_mask": {
+        "*": {
+            "zookeepercluster/default/zookeeper-cluster": [
+                [
+                    "status",
+                    "members",
+                    "ready"
+                ]
+            ]
+        }
+    }
+}
